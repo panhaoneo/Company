@@ -1,0 +1,164 @@
+﻿<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <title>ECharts</title>
+</head>
+
+<body>
+    <!-- 引入echarts文件-->
+	<script src="js/echarts.min.js"></script>
+	<!-- 引入jquery.js文件-->
+	<script src="js/jquery.js"></script>
+	
+	<!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+    <div id="main" style="margin-right:auto;margin-left: auto;margin-bottom:50px;width: 100%;height:600px"></div>
+	<script type="text/javascript">
+	//js 基础函数定义
+	//键值对对象定义
+	function Dictionary(){
+ 		this.data = new Array();
+ 
+		this.put = function(key,value){
+  			this.data[key] = value;
+ 		};
+
+ 		this.get = function(key){
+  			return this.data[key];
+ 		};
+
+ 		this.remove = function(key){
+  			this.data[key] = null;
+ 		};
+ 
+ 		this.isEmpty = function(){
+  			return this.data.length == 0;
+ 		};
+
+ 		this.size = function(){
+  			return this.data.length;
+ 		};
+	}
+	//数组去重
+	function unique(arr) {
+		var result = [], hash = {};
+    		for (var i = 0, elem; (elem = arr[i]) != null; i++) {
+        		if (!hash[elem]) {
+            			result.push(elem);
+            			hash[elem] = true;
+        		}
+    		}
+    	return result;
+	//http://www.cnblogs.com/sosoft/
+	}	
+
+		//echarts 的设置定义
+		var Types = ['Indexmink','','Fundmink','','Bondmink','','StockBmink','','StockAmink'];
+		var Days = [];
+		var myChart = echarts.init(document.getElementById('main'));
+		myChart.setOption({
+		title: {
+			text: "THS分钟k线数据展示",
+			subtext: "@THS"
+		},
+		tooltip: {
+			
+		},
+		grid:{
+			height: "50%",
+			y: "10%"	
+		},
+		xAxis: {
+				type:'category',
+				data:[]
+		},
+		yAxis: {
+			type:'category',
+			splitArea: {
+				show: true,
+				interval: 0,
+			},
+			data:[]
+		},
+		visualMap:{
+			type: 'piecewise',		
+			itemWidth: 100,
+			calculable: true,
+			orient: 'horizontal',
+			left: 'center',
+			pieces:[
+				{value:0,label:'正确',color:'green'},
+				{min:1,max:200,label:'少许错误',color:'#F2C94C'},
+				{min:201,max:1000,label:'大量错误',color:'red'},
+				{gt:1001,label:'数据废了',color:'#8e9eab'}	
+			]
+		},
+		series: [
+			{
+				name: "card",
+				type: "heatmap",
+				itemStyle: {
+					emphasis: {
+                			shadowBlur: 10,
+                			shadowColor: 'rgba(0, 0, 0, 0.5)'
+					}
+				},
+				data: []
+			}
+		]
+	});
+	//myChart.showLoading();   //load 动画
+	var xDates=[];      //时间轴
+	var yTypes=[];      //数据类型
+	var errSum=[];      //错误个数
+	$.ajax({	
+	async : true,     //异步请求
+	url : "csv2json.php",
+	data : {},
+	dataType : "json",
+	success : function(result){
+		//请求成功的时候执行这个函数,result即为服务器范围的json对象
+		var dayMap = new Dictionary();	
+		var typeMap = new Dictionary();  
+		var temp = new Array();
+		for(var i=0; i<Types.length; i++) {
+			typeMap.put(Types[i],i); 
+		}
+
+		if(result){
+			for(var i=0;i<result.length;i++){       
+				xDates.push(result[i].xdate); 
+            		}
+			xDates = unique(xDates);
+			for(var i=0;i<xDates.length;i++){
+				dayMap.put(xDates[i],i);
+			}
+			for(var i=0;i<result.length;i++){ 
+				temp.push(dayMap.get(result[i].xdate),typeMap.get(result[i].yType),result[i].error_sum);
+				errSum.push(temp);
+				temp=[];
+			}
+			//errSum = errSum.map(function(item) {
+			//	return [item[0],item[1],item[2]];		
+			//});
+
+			//myChart.hideLoading(); //隐藏加载动画
+			myChart.setOption({
+				xAxis: {
+					data: xDates
+				},
+				yAxis: {
+					data: Types
+				},
+				series: [{
+					data : errSum
+				}]
+			});
+		}
+	},
+	error : function(errorMsg){
+		alert("请求数据失败！");
+		myChart.hideLoading();
+	}
+	})
+	</script>
+</body>
